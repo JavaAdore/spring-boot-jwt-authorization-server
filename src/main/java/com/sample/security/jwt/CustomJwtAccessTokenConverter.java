@@ -18,9 +18,10 @@ public class CustomJwtAccessTokenConverter extends JwtAccessTokenConverter {
         CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
         Map<String,Object> info = new LinkedHashMap<>(accessToken.getAdditionalInformation());
         // add more
+        info.put("applicationUserId", user.getApplicationUserId());
         DefaultOAuth2AccessToken defaultOAuth2AccessToken = new DefaultOAuth2AccessToken(accessToken);
         defaultOAuth2AccessToken.setAdditionalInformation(info);
 
-        return super.enhance(accessToken, authentication);
+        return super.enhance(defaultOAuth2AccessToken, authentication);
     }
 }

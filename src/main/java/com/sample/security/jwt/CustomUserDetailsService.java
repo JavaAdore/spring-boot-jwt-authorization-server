@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return new CustomUserDetails("mahmoud","eltaieb", AuthorityUtils.createAuthorityList("user"));
+        CustomUserDetails userDetails = new CustomUserDetails("mahmoud","eltaieb", AuthorityUtils.createAuthorityList("user"));
+        userDetails.setApplicationUserId("654321");
+         return userDetails;
     }
 }
