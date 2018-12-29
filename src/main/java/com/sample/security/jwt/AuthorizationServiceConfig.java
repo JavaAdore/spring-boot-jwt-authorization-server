@@ -47,11 +47,5 @@ public class AuthorizationServiceConfig extends AuthorizationServerConfigurerAda
 
 
 
-    /*
-    private JwtAccessTokenConverter tokenEnhancer() {
-        JwtAccessTokenConverter jwtAccessTokenConverter = new CustomJwtAccessTokenConverter();
-        return jwtAccessTokenConverter;
-    }*/
-
 
 }
