@@ -1,7 +1,10 @@
 package com.sample.security.jwt;
 
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
- import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +27,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+
+
+import java.io.IOException;
 import java.io.Serializable;
+import java.security.GeneralSecurityException;
 import java.util.*;
 
 @RestController
@@ -32,13 +43,13 @@ import java.util.*;
 public class SocialLoginController {
 
 
-    @Autowired
-    JwtAccessTokenConverter jwtAccessTokenConverter;
 
     @Autowired
     private AuthorizationServerEndpointsConfiguration configuration;
 
 
+    @Value("${google.client.id}")
+    private String googleClientId;
 
 
     @RequestMapping("/facebook")
@@ -51,23 +62,69 @@ public class SocialLoginController {
         org.springframework.social.facebook.api.User u=    facebook.fetchObject("me", org.springframework.social.facebook.api.User.class, fields);
         System.out.println(u);
         CustomUserDetails user = new CustomUserDetails("mahmoud","eltaieb",new HashSet<>());
-        user.setApplicationUserId("123321");
+        user.setApplicationUserId(fields[0]);
+
+
+
+        return generateOAuth2AccessToken(user);
+    }
+
+
+    @RequestMapping("/google")
+    public OAuth2AccessToken google(@RequestParam("clientIdToken") String clientIdToken) throws GeneralSecurityException, IOException {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), JacksonFactory.getDefaultInstance())
+                // Specify the CLIENT_ID of the app that accesses the backend:
+                .setAudience(Collections.singletonList(googleClientId))
+                // Or, if multiple clients access the backend:
+                //.setAudience(Arrays.asList(CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3))
+                .build();
+
+// (Receive idTokenString by HTTPS POST)
+
+        GoogleIdToken idToken = verifier.verify(clientIdToken);
+        if (idToken != null) {
+            Payload payload = idToken.getPayload();
+
+            // Print user identifier
+            String userId = payload.getSubject();
+            System.out.println("User ID: " + userId);
+
+            // Get profile information from payload
+            String email = payload.getEmail();
+            boolean emailVerified = Boolean.valueOf(payload.getEmailVerified());
+            String name = (String) payload.get("name");
+            String pictureUrl = (String) payload.get("picture");
+            String locale = (String) payload.get("locale");
+            String familyName = (String) payload.get("family_name");
+            String givenName = (String) payload.get("given_name");
+
+             CustomUserDetails user = new CustomUserDetails("mahmoud","eltaieb",new HashSet<>());
+            user.setApplicationUserId("123456");
+            return generateOAuth2AccessToken(user);
+            // Use or store profile information
+            // ...
+
+        } else {
+            System.out.println("Invalid ID token.");
+        }
+        return null;
+    }
+
+    public OAuth2AccessToken generateOAuth2AccessToken(User user ) {
+
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        Map<String, Serializable> extensionProperties = new HashMap<String, Serializable>();
+
+        List<String> scopes = new ArrayList<>();
+        scopes.add("read");
+        scopes.add("write");
+
         List<Role> roles=  new LinkedList<>();
         Role r = new Role();
         r.name="user";
         roles.add(r);;
 
-        List<String> scope = new ArrayList<>();
-        scope.add("read");
-        scope.add("write");
 
-        return generateOAuth2AccessToken(user,roles,scope);
-    }
-
-     public OAuth2AccessToken generateOAuth2AccessToken(User user, List<Role> roles, List<String> scopes) {
-
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        Map<String, Serializable> extensionProperties = new HashMap<String, Serializable>();
 
         boolean approved = true;
         Set<String> responseTypes = new HashSet<String>();
